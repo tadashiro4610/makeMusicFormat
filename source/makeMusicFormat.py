@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import colorchooser,filedialog,font
-import os
+import random
+from pathlib import Path
 import sys
 import msf_excel
 
@@ -35,10 +36,19 @@ class songFormat:
 
         def color_event():
             #カラーピッカーの起動
-            self.col16=colorchooser.askcolor()
+            tmp=colorchooser.askcolor()
+            self.col16[1]=tmp[1]
             #ボタンの色、テキストの変更
             self.color_button.config(bg=self.col16[1]) 
             self.color_button.config(text=self.col16[1])
+            self.color_rand_button.config(bg=self.col16[1])
+
+        def color_rand_event():
+            color = "#"+"".join([random.choice('0123456789ABCDEF') for j in range(6)])
+            self.col16[1]=color
+            self.color_button.config(bg=self.col16[1]) 
+            self.color_button.config(text=self.col16[1])
+            self.color_rand_button.config(bg=self.col16[1])
         
         def bar_plus_event():
             a=int(self.bar_entry.get())
@@ -52,7 +62,6 @@ class songFormat:
                 a-=1
             self.bar_entry.delete(0,tk.END)
             self.bar_entry.insert(0,str(a))
-
         
         def plus_event():
             #セクション名、小節数、色の取得
@@ -72,10 +81,16 @@ class songFormat:
             #リストボックスに追加
             self.listbox.insert(tk.END,txt)
 
+            self.bar_entry.insert(0,"0")
+
         def minus_event():
             #選択物を取得して削除
-            selectedIndex = tk.ACTIVE
-            self.listbox.delete(selectedIndex)
+            selectedIndex = self.listbox.curselection()
+            if selectedIndex==():
+                self.listbox.delete(tk.END)
+            else:
+                self.listbox.delete(selectedIndex)
+                
 
         def generate_event():
             clear_list()
@@ -102,10 +117,10 @@ class songFormat:
                 self.dir=selected_file
                 self.dir_label.config(text=selected_file)
 
-        #gridの行列はこれで取得できる(デバッグ用)
-        def callback(event):
-            info = event.widget.grid_info()
-            print(info['row'],info['column'])
+        # #gridの行列はこれで取得できる(デバッグ用)
+        # def callback(event):
+        #     info = event.widget.grid_info()
+        #     print(info['row'],info['column'])
 
         #widget
         #label
@@ -125,6 +140,7 @@ class songFormat:
         self.color_entry=tk.Entry(width=20,font=self.ent_font)
         #button
         self.color_button=tk.Button(text="クリックして変更",command=color_event,bg=self.col16[1],relief=tk.RAISED)
+        self.color_rand_button=tk.Button(text="Random",command=color_rand_event,bg=self.col16[1],relief=tk.RAISED)
         self.bar_plus_button=tk.Button(text="↑",width=1,height=1,command=bar_plus_event)
         self.bar_minas_button=tk.Button(text="↓",width=1,height=1,command=bar_minus_event)
         self.plus_button=tk.Button(text="+",width=2,height=1,command=plus_event)
@@ -134,7 +150,7 @@ class songFormat:
         #scroll,listbox
         self.scr=tk.Scrollbar(orient="vertical")
         self.list_font=font.Font(size=20)
-        self.listbox=tk.Listbox(font=self.list_font)
+        self.listbox=tk.Listbox(font=self.list_font,selectmode=tk.SINGLE)
         self.listbox["yscrollcommand"] = self.scr.set
         self.scr["command"]=self.listbox.yview
         #gridで配置
@@ -149,6 +165,7 @@ class songFormat:
         self.bar_entry.grid(row=4,column=1,sticky="nsew",padx=2)
         self.color_label.grid(row=3,column=2)
         self.color_button.grid(row=4,column=2,sticky="nsew",padx=2)
+        self.color_rand_button.grid(row=4,column=3,sticky="nsew",padx=2)
 
         self.bar_plus_button.grid(row=5,column=1,sticky="nsew")
         self.bar_minas_button.grid(row=6,column=1,sticky="nsew")
@@ -167,19 +184,14 @@ class songFormat:
         self.master.grid_columnconfigure(3,weight=1,minsize=100)    
         self.master.grid_rowconfigure(7,weight=1,minsize=100)
 
-        self.master.bind_all("<1>",callback) #gridの行列取得
+        # self.master.bind_all("<1>",callback) #gridの行列取得
 
 if __name__ == '__main__':
-    def temp_path(relative_path):
-        try:
-            #Retrieve Temp Path
-            base_path = sys._MEIPASS
-        except Exception:
-            #Retrieve Current Path Then Error 
-            base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
+    def resource_path(relative_path):
+        base_path = getattr(sys, '_MEIPASS', str(Path(__file__).absolute().parent))
+        return str(Path(base_path).joinpath(relative_path))
     
-    logo=temp_path("msf.ico")
+    logo=resource_path("msf.ico")
 
     root = tk.Tk()
     root.iconbitmap(default=logo)
