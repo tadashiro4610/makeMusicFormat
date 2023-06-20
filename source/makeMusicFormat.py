@@ -1,8 +1,11 @@
+import csv
 import tkinter as tk
 from tkinter import colorchooser,filedialog,font
+import tkinter.ttk as ttk
 import random
 from pathlib import Path
 import sys
+import os
 import msf_excel
 
 class songFormat:
@@ -11,6 +14,17 @@ class songFormat:
         self.master.title("Make Music Format")
         self.master.geometry("700x500")
         self.master.minsize(400,300)
+        #combobox用のcsv読み込み
+        if getattr(sys, 'frozen', False):
+        # 実行ファイルからの実行時
+            script_dir = sys._MEIPASS
+        else:
+            # スクリプトからの実行時
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(script_dir, "pullDownList.csv")
+        with open(csv_path,encoding="utf-8") as f:
+            reader=csv.reader(f)
+            self.combo_list=[row for row in reader]
 
         #excel生成用に渡す引数
         self.musicName=None
@@ -62,10 +76,37 @@ class songFormat:
                 a-=1
             self.bar_entry.delete(0,tk.END)
             self.bar_entry.insert(0,str(a))
+
+        def list_move_up():
+            selected_index = self.listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                if index > 0:
+                    # 選択した項目を上に移動
+                    item = self.listbox.get(index)
+                    self.listbox.delete(index)
+                    self.listbox.insert(index - 1, item)
+                    self.listbox.selection_clear(0, tk.END)
+                    self.listbox.selection_set(index - 1)
+                    self.listbox.itemconfig(index-1,{"bg":self.col16[1]})
+        
+        def list_move_down():
+            selected_index = self.listbox.curselection()
+            if selected_index:
+                index = selected_index[0]
+                if index < self.listbox.size() - 1:
+                    # 選択した項目を下に移動
+                    item = self.listbox.get(index)
+                    self.listbox.delete(index)
+                    self.listbox.insert(index + 1, item)
+                    self.listbox.selection_clear(0, tk.END)
+                    self.listbox.selection_set(index + 1)
+                    self.listbox.itemconfig(index+1,{"bg":self.col16[1]})
         
         def plus_event():
             #セクション名、小節数、色の取得
-            a=self.section_entry.get()
+            # a=self.section_entry.get()
+            a=self.combobox.get()
             b=self.bar_entry.get()
             c=self.col16[1]
             #openpyxlだと#がいらない
@@ -75,11 +116,13 @@ class songFormat:
                 c=c[1]
             
             #入力された文字の削除
-            self.section_entry.delete(0,tk.END)
+            # self.section_entry.delete(0,tk.END)
+            self.combobox.delete(0,tk.END)
             self.bar_entry.delete(0,tk.END)
             txt=a+","+b+","+c
             #リストボックスに追加
             self.listbox.insert(tk.END,txt)
+            self.listbox.itemconfig(tk.END,{"bg":self.col16[1]})
 
             self.bar_entry.insert(0,"0")
 
@@ -89,8 +132,7 @@ class songFormat:
             if selectedIndex==():
                 self.listbox.delete(tk.END)
             else:
-                self.listbox.delete(selectedIndex)
-                
+                self.listbox.delete(selectedIndex)                
 
         def generate_event():
             clear_list()
@@ -116,6 +158,22 @@ class songFormat:
                 #     self.listbox_files.insert(tk.END, file)
                 self.dir=selected_file
                 self.dir_label.config(text=selected_file)
+            
+        def on_select(event):
+            self.list_onSelected=self.listbox.get(event.widget.curselection())
+            # print(self.list_onSelected)
+            tmp=self.list_onSelected.split(",")
+            self.combobox.delete(0,tk.END)
+            self.combobox.insert(0,tmp[0])
+            self.bar_entry.delete(0,tk.END)
+            self.bar_entry.insert(0,tmp[1])
+            self.col16[1]="#"+tmp[2]
+            self.color_button.config(bg=self.col16[1]) 
+            self.color_button.config(text=self.col16[1])
+            self.color_rand_button.config(bg=self.col16[1])
+
+        def list_select_clear():
+            self.listbox.select_clear(0,tk.END)
 
         # #gridの行列はこれで取得できる(デバッグ用)
         # def callback(event):
@@ -126,7 +184,8 @@ class songFormat:
         #label
         self.name_label=tk.Label(text="題名")
         self.barLow_label=tk.Label(text="一行何小節か")
-        self.section_label=tk.Label(text="セクション名")
+        # self.section_label=tk.Label(text="セクション名")
+        self.combo_label=tk.Label(text="セクション名")
         self.bar_label=tk.Label(text="小節数")
         self.color_label=tk.Label(text="色")
         self.dir_label=tk.Label(text="保存ファイルを選択(.xlsx)")
@@ -134,15 +193,19 @@ class songFormat:
         self.ent_font=font.Font(size=15)
         self.musicName_entry=tk.Entry(width=20,font=self.ent_font)
         self.barLow_entry=tk.Entry(width=20,font=self.ent_font)
-        self.section_entry=tk.Entry(width=20,font=self.ent_font)
+        # self.section_entry=tk.Entry(width=20,font=self.ent_font)
+        self.combobox=ttk.Combobox(values=self.combo_list,width=20,font=self.ent_font)
         self.bar_entry=tk.Entry(width=20,font=self.ent_font)
         self.bar_entry.insert(0,"0")
         self.color_entry=tk.Entry(width=20,font=self.ent_font)
         #button
         self.color_button=tk.Button(text="クリックして変更",command=color_event,bg=self.col16[1],relief=tk.RAISED)
         self.color_rand_button=tk.Button(text="Random",command=color_rand_event,bg=self.col16[1],relief=tk.RAISED)
+        self.list_select_clear_buttun=tk.Button(text="選択解除",command=list_select_clear,relief=tk.RAISED)
         self.bar_plus_button=tk.Button(text="↑",width=1,height=1,command=bar_plus_event)
         self.bar_minas_button=tk.Button(text="↓",width=1,height=1,command=bar_minus_event)
+        self.list_up_button=tk.Button(text="↑",width=2,height=1,command=list_move_up)
+        self.list_down_button=tk.Button(text="↓",width=2,height=1,command=list_move_down)
         self.plus_button=tk.Button(text="+",width=2,height=1,command=plus_event)
         self.minas_button=tk.Button(text="-",width=2,height=1,command=minus_event)
         self.generate_button=tk.Button(text="generate",command=generate_event)
@@ -159,8 +222,10 @@ class songFormat:
         self.barLow_label.grid(row=0,column=1)
         self.barLow_entry.grid(row=1,column=1,sticky="nsew",padx=2)
 
-        self.section_label.grid(row=3,column=0)
-        self.section_entry.grid(row=4,column=0,sticky="nsew",padx=2)
+        # self.section_label.grid(row=3,column=0)
+        self.combo_label.grid(row=3,column=0)
+        # self.section_entry.grid(row=4,column=0,sticky="nsew",padx=2)
+        self.combobox.grid(row=4,column=0,sticky="nsew",padx=2)
         self.bar_label.grid(row=3,column=1)
         self.bar_entry.grid(row=4,column=1,sticky="nsew",padx=2)
         self.color_label.grid(row=3,column=2)
@@ -171,10 +236,13 @@ class songFormat:
         self.bar_minas_button.grid(row=6,column=1,sticky="nsew")
 
         self.listbox.grid(row=7,column=0,columnspan=3,sticky="nsew",padx=3,pady=3)
+        self.list_select_clear_buttun.grid(row=7,column=3,sticky="se")
         self.scr.grid(row=7,column=3,sticky="nsw")
         self.generate_button.grid(row=8,column=0,sticky="w")
         self.selectFile_button.grid(row=8,column=0,sticky="e")
         self.dir_label.grid(row=8,column=1,sticky="w")
+        self.list_up_button.grid(row=8,column=1,sticky="e")
+        self.list_down_button.grid(row=8,column=2,sticky="w")
         self.plus_button.grid(row=8,column=2,sticky="e")
         self.minas_button.grid(row=8,column=3,sticky="w")
 
@@ -185,6 +253,8 @@ class songFormat:
         self.master.grid_rowconfigure(7,weight=1,minsize=100)
 
         # self.master.bind_all("<1>",callback) #gridの行列取得
+        #listboxの選択検出
+        self.listbox.bind("<<ListboxSelect>>",on_select)
 
 if __name__ == '__main__':
     def resource_path(relative_path):
